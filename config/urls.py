@@ -1,10 +1,13 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # Auth endpoints
+    path('api/auth/', include('users.urls')),
 
     # API documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
