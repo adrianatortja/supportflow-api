@@ -11,6 +11,9 @@ urlpatterns = [
 
     # Organization endpoints
     path('api/organizations/', include('organizations.urls')),
+    
+    # Ticket endpounts
+    path('api/tickets/', include('tickets.urls')),
 
     # API documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
