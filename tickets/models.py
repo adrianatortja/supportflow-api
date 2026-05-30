@@ -5,26 +5,26 @@ from organizations.models import Organization
 
 
 class Ticket(models.Model):
-    STATUS_OPEN = 'open'
-    STATUS_IN_PROGRESS = 'in_progress'
-    STATUS_RESOLVED = 'resolved'
-    STATUS_CLOSED = 'closed'
+    STATUS_OPEN = "open"
+    STATUS_IN_PROGRESS = "in_progress"
+    STATUS_RESOLVED = "resolved"
+    STATUS_CLOSED = "closed"
 
     STATUS_CHOICES = [
-        (STATUS_OPEN, 'Open'),
-        (STATUS_IN_PROGRESS, 'In Progress'),
-        (STATUS_RESOLVED, 'Resolved'),
-        (STATUS_CLOSED, 'Closed'),
+        (STATUS_OPEN, "Open"),
+        (STATUS_IN_PROGRESS, "In Progress"),
+        (STATUS_RESOLVED, "Resolved"),
+        (STATUS_CLOSED, "Closed"),
     ]
 
-    PRIORITY_LOW = 'low'
-    PRIORITY_MEDIUM = 'medium'
-    PRIORITY_HIGH = 'high'
+    PRIORITY_LOW = "low"
+    PRIORITY_MEDIUM = "medium"
+    PRIORITY_HIGH = "high"
 
     PRIORITY_CHOICES = [
-        (PRIORITY_LOW, 'Low'),
-        (PRIORITY_MEDIUM, 'Medium'),
-        (PRIORITY_HIGH, 'High'),
+        (PRIORITY_LOW, "Low"),
+        (PRIORITY_MEDIUM, "Medium"),
+        (PRIORITY_HIGH, "High"),
     ]
 
     title = models.CharField(max_length=255)
@@ -42,19 +42,40 @@ class Ticket(models.Model):
     organization = models.ForeignKey(
         Organization,
         on_delete=models.CASCADE,
-        related_name='tickets',
+        related_name="tickets",
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='tickets',
+        related_name="tickets",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def __str__(self):
         return self.title
-    
+
+
+class TicketComment(models.Model):
+    ticket = models.ForeignKey(
+        Ticket,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ticket_comments",
+    )
+    body = models.TextField()
+    is_internal = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment on ticket {self.ticket_id}"

@@ -5,8 +5,8 @@ from rest_framework import filters, generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Ticket
-from .serializers import TicketSerializer
+from .models import Ticket, TicketComment
+from .serializers import TicketCommentSerializer, TicketSerializer
 
 
 class TicketListCreateView(generics.ListCreateAPIView):
@@ -136,4 +136,32 @@ class TicketSuggestedReplyView(APIView):
                 "ticket_id": ticket.id,
                 "suggested_reply": suggested_reply,
             }
+        )
+
+
+class TicketCommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = TicketCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_ticket(self):
+        return get_object_or_404(
+            Ticket,
+            pk=self.kwargs["pk"],
+            owner=self.request.user,
+        )
+
+    def get_queryset(self):
+        ticket = self.get_ticket()
+
+        return TicketComment.objects.filter(
+            ticket=ticket,
+            owner=self.request.user,
+        )
+
+    def perform_create(self, serializer):
+        ticket = self.get_ticket()
+
+        serializer.save(
+            ticket=ticket,
+            owner=self.request.user,
         )
