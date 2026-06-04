@@ -1,8 +1,10 @@
 # SupportFlow API
 
+![Django CI](https://github.com/adrianatortja/supportflow-api/actions/workflows/django.yml/badge.svg)
+
 SupportFlow API is a Django REST Framework SaaS-style backend for managing customer support workflows.
 
-It provides authenticated APIs for users, organizations, and support tickets, with ownership-based access control and a clean backend structure designed for future SaaS features.
+It provides authenticated APIs for users, organizations, support tickets, ticket analytics, suggested replies, and internal ticket comments, with ownership-based access control and a clean backend structure designed for future SaaS features.
 
 ---
 
@@ -15,9 +17,14 @@ The project focuses on:
 - User authentication
 - Organization management
 - Support ticket management
+- Ticket filtering, search, and ordering
+- Ticket analytics
+- Suggested customer support replies
+- Ticket comments and internal notes
 - Protected API endpoints
 - Ownership-based data access
-- Clean Django REST Framework architecture
+- Automated testing
+- GitHub Actions CI
 - API documentation
 - Future SaaS-ready structure
 
@@ -33,6 +40,7 @@ The project focuses on:
 - django-filter
 - drf-spectacular
 - Git & GitHub
+- GitHub Actions
 
 ---
 
@@ -52,6 +60,7 @@ The project focuses on:
 - List organizations owned by the authenticated user
 - Retrieve organization details
 - Update organization details
+- Delete organizations
 - Ownership-based access control
 
 ### Tickets
@@ -62,48 +71,41 @@ The project focuses on:
 - Update ticket status and details
 - Delete tickets
 - Connect tickets to organizations
+- Filter tickets by status, priority, and organization
+- Search tickets by title and description
+- Order tickets by created date, updated date, priority, and status
 - Ownership-based access control
+
+### Ticket Analytics
+
+- View total ticket count
+- View ticket counts by status
+- View ticket counts by priority
+- Analytics are scoped to the authenticated user
+
+### Suggested Replies
+
+- Generate a rule-based suggested support reply for a ticket
+- Suggested replies are based on the ticket title and description
+- Access is restricted to the ticket owner
+
+### Ticket Comments / Internal Notes
+
+- Create comments for a ticket
+- List comments for a ticket
+- Support internal notes with `is_internal`
+- Comments are tied to both the ticket and authenticated user
+- Access is restricted to the ticket owner
 
 ### API Documentation
 
 - Swagger API documentation
 - OpenAPI schema generation
 
----
+### Testing and CI
 
-## Project Structure
-
-```bash
-supportflow-api/
-├── config/
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-│
-├── core/
-│
-├── organizations/
-│   ├── models.py
-│   ├── serializers.py
-│   ├── views.py
-│   └── urls.py
-│
-├── tickets/
-│   ├── models.py
-│   ├── serializers.py
-│   ├── views.py
-│   └── urls.py
-│
-├── users/
-│   ├── models.py
-│   ├── serializers.py
-│   ├── views.py
-│   └── urls.py
-│
-├── manage.py
-├── requirements.txt
-└── .gitignore
-```
+- Automated Django tests
+- GitHub Actions workflow for running tests on push and pull request
 
 ---
 
@@ -137,6 +139,22 @@ supportflow-api/
 | GET | `/api/tickets/<id>/` | Retrieve ticket details |
 | PATCH | `/api/tickets/<id>/` | Update ticket |
 | DELETE | `/api/tickets/<id>/` | Delete ticket |
+| GET | `/api/tickets/analytics/` | Get ticket analytics |
+| GET | `/api/tickets/<id>/suggested-reply/` | Get a suggested support reply |
+| GET | `/api/tickets/<id>/comments/` | List comments for a ticket |
+| POST | `/api/tickets/<id>/comments/` | Create a comment for a ticket |
+
+### Ticket Filtering, Search, and Ordering
+
+The ticket list endpoint supports filtering, search, and ordering.
+
+```text
+GET /api/tickets/?status=open
+GET /api/tickets/?priority=high
+GET /api/tickets/?organization=1
+GET /api/tickets/?search=login
+GET /api/tickets/?ordering=-created_at
+```
 
 ### Documentation
 
@@ -147,32 +165,43 @@ supportflow-api/
 
 ---
 
-## Example Ticket Object
+## Example Analytics Response
 
 ```json
 {
-  "id": 1,
-  "title": "Customer cannot access account",
-  "description": "The customer says they cannot log in after resetting their password.",
-  "status": "open",
-  "priority": "medium",
-  "organization": 1,
-  "owner": 1,
-  "created_at": "2026-05-30T10:00:00Z"
+  "total_tickets": 1,
+  "status_counts": {
+    "open": 1
+  },
+  "priority_counts": {
+    "high": 1
+  }
 }
 ```
 
 ---
 
-## Example Organization Object
+## Example Suggested Reply Response
+
+```json
+{
+  "ticket_id": 2,
+  "suggested_reply": "Hi, thank you for reaching out. I’m sorry you’re having trouble accessing your account. Please try resetting your password again, and if the issue continues, we’ll investigate further."
+}
+```
+
+---
+
+## Example Ticket Comment Object
 
 ```json
 {
   "id": 1,
-  "name": "Acme Support",
-  "description": "Customer support team for Acme.",
+  "ticket": 2,
   "owner": 1,
-  "created_at": "2026-05-30T10:00:00Z"
+  "body": "Customer already tried resetting the password. Need to check account status.",
+  "is_internal": true,
+  "created_at": "2026-05-30T15:59:14.034483Z"
 }
 ```
 
@@ -282,6 +311,42 @@ POST /api/auth/refresh/
 
 ---
 
+## Running Tests
+
+Run the test suite locally with:
+
+```bash
+python manage.py test
+```
+
+Current test coverage includes:
+
+- Suggested reply endpoint access
+- Ticket comments list/create behavior
+- Ownership protection
+- Unauthenticated access protection
+
+---
+
+## Continuous Integration
+
+This project uses GitHub Actions for CI.
+
+The workflow runs automatically on:
+
+- Pushes to `main`
+- Pull requests targeting `main`
+
+The CI workflow checks migrations and runs the Django test suite.
+
+Workflow file:
+
+```text
+.github/workflows/django.yml
+```
+
+---
+
 ## Access Control
 
 SupportFlow API uses ownership-based access control.
@@ -289,11 +354,11 @@ SupportFlow API uses ownership-based access control.
 This means:
 
 - Users can only see their own organizations.
-- Users can only manage tickets connected to their own data.
+- Users can only manage their own tickets.
+- Users can only access suggested replies for their own tickets.
+- Users can only create and list comments for their own tickets.
 - Protected endpoints require authentication.
 - Unauthorized users cannot access private resources.
-
-This structure is important for SaaS-style applications where each user or organization must only access their own data.
 
 ---
 
@@ -307,8 +372,14 @@ The project currently includes:
 - Custom user model
 - Organization management
 - Ticket management
+- Ticket filtering, search, and ordering
+- Ticket analytics
+- Suggested replies
+- Ticket comments and internal notes
 - Protected endpoints
 - Ownership-based access control
+- Automated tests
+- GitHub Actions CI
 - API documentation setup
 
 ---
@@ -317,33 +388,14 @@ The project currently includes:
 
 Future improvements may include:
 
-- Ticket filtering, search, and ordering
-- Ticket analytics endpoint
-- Suggested reply endpoint
-- Automated tests
-- GitHub Actions CI
 - PostgreSQL configuration
 - Docker setup
 - Frontend dashboard
+- Team-based organizations
+- Ticket assignment
 - Role-based permissions for admin and support agents
 - SaaS billing and subscription logic
-
----
-
-## Learning Goals
-
-This project was built to practice backend development concepts used in real SaaS applications, including:
-
-- API design
-- Authentication
-- Authorization
-- Data ownership
-- Model relationships
-- Serializer validation
-- Clean project structure
-- Postman testing
-- API documentation
-- Git and GitHub workflow
+- AI-assisted support replies using an external AI service
 
 ---
 
@@ -351,16 +403,7 @@ This project was built to practice backend development concepts used in real Saa
 
 SupportFlow API demonstrates the backend foundation of a customer support SaaS platform.
 
-It shows how to build authenticated, protected, and organized APIs for real-world business workflows.
-
-The project can be extended into a full SaaS application with:
-
-- A React frontend
-- Team-based organizations
-- Ticket assignment
-- Analytics dashboard
-- AI-assisted support replies
-- Subscription billing
+It shows how to build authenticated, protected, tested, and organized APIs for real-world business workflows.
 
 ---
 
